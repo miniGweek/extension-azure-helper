@@ -16,9 +16,30 @@ function main() {
               ", Interval timer is " +
               extension_azure_helper.timers.searcher
           );
-          extension_azure_helper.vm_helper(
-            extension_azure_helper.constants.virtualMachineSearchAnchor
+
+          extension_azure_helper.shortcut_helper(
+            extension_azure_helper.constants.virtualMachineSearchAnchor,
+            "Microsoft.Compute",
+            "virtualMachines",
+            [
+              { shortCutName: "Networking", azureUrlEndPart: "networking" },
+              { shortCutName: "Run", azureUrlEndPart: "runcommands" },
+              { shortCutName: "IAM", azureUrlEndPart: "users" },
+              { shortCutName: "Bastion", azureUrlEndPart: "bastionHost" },
+            ]
           );
+
+          // extension_azure_helper.shortcut_helper(
+          //   extension_azure_helper.constants.storageAccountSearchAnchor,
+          //   "Microsoft.Storage",
+          //   "storageAccounts",
+          //   [
+          //     { shortCutName: "Networking", azureUrlEndPart: "networking" },
+          //     { shortCutName: "Explorer", azureUrlEndPart: "storageexplorer" },
+          //     { shortCutName: "IAM", azureUrlEndPart: "users" },
+          //     { shortCutName: "Keys", azureUrlEndPart: "keys" },
+          //   ]
+          // );
         }, 1000);
       }
     });
@@ -32,6 +53,8 @@ var extension_azure_helper = {
     azurePortalSearchBox: "div.fxs-search-box.fxs-topbar-input>input",
     virtualMachineSearchAnchor:
       "a.fxs-menu-item.fxs-search-menu-content[title*='Virtual machine']",
+    storageAccountSearchAnchor:
+      "a.fxs-menu-item.fxs-search-menu-content[title*='Storage account']",
     searchResultList: "fxs-portal-hover.fxs-menu-result-item",
   },
   timers: {
@@ -50,42 +73,28 @@ var extension_azure_helper = {
       resourceName: resourceName,
     };
   },
-  vm_helper: function (resourceSearchAnchor) {
+  shortcut_helper: function (
+    resourceSearchAnchor,
+    provider,
+    resourceType,
+    shortCuts
+  ) {
     $(resourceSearchAnchor).each(function (i, e) {
       let resultRow = jQuery(e);
       let { subscription, resourcegroup, resourceName } =
         extension_azure_helper.azure_url_parser(e);
 
-      let linkPattern = `${extension_azure_helper.constants.baseAzureUrl}${subscription}/resourceGroups/${resourcegroup}/providers/Microsoft.Compute/virtualMachines/${resourceName}/`;
+      let linkPattern = `${extension_azure_helper.constants.baseAzureUrl}${subscription}/resourceGroups/${resourcegroup}/providers/${provider}/${resourceType}/${resourceName}/`;
 
-      extension_azure_helper.link_helper(
-        resultRow,
-        "Networking",
-        linkPattern,
-        "networking",
-        extension_azure_helper.timers.searcher
-      );
-      extension_azure_helper.link_helper(
-        resultRow,
-        "Run",
-        linkPattern,
-        "runcommands",
-        extension_azure_helper.timers.searcher
-      );
-      extension_azure_helper.link_helper(
-        resultRow,
-        "IAM",
-        linkPattern,
-        "users",
-        extension_azure_helper.timers.searcher
-      );
-      extension_azure_helper.link_helper(
-        resultRow,
-        "Bastion",
-        linkPattern,
-        "bastionHost",
-        extension_azure_helper.timers.searcher
-      );
+      shortCuts.forEach(function (shortCut) {
+        extension_azure_helper.link_helper(
+          resultRow,
+          shortCut.shortCutName,
+          linkPattern,
+          shortCut.azureUrlEndPart,
+          extension_azure_helper.timers.searcher
+        );
+      });
     });
   },
   link_helper: function (
@@ -103,17 +112,6 @@ var extension_azure_helper = {
     if (!linkExists) {
       resultRow.parent().after(`
   <a class=${shortCutName} href="${shortCutLink}" target='_blank'>${shortCutName}</a>`);
-      console.log(
-        `added ${shortCutName} link. clearing search interval ${extension_azure_helper.timers.searcher}`
-      );
-      // resultRow
-      //   .parent()
-      //   .next(`a:contains(${shortCutName})`)
-      //   .click(function (e) {
-      //     console.log(`${shortCutName} Link clicked`);
-      //     console.log(`Clearing interval searching`);
-      //     clearInterval(timer);
-      //   });
     }
   },
   link_exists_checker: function (resultRow, shortCutName) {

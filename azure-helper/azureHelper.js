@@ -37,31 +37,65 @@ var extension_azure_helper = {
   timers: {
     searcher: null,
   },
-  vm_helper: function (virtualMachineSearchAnchor) {
-    $(virtualMachineSearchAnchor).each(function (i, e) {
+  azure_url_parser: function (element) {
+    let resultRow = jQuery(element);
+    let resourceHref = resultRow.attr("href");
+    let splits = resourceHref.split("/");
+    let subscription = splits[5];
+    let resourcegroup = splits[7];
+    let resourceName = splits[11];
+    return {
+      subscription: subscription,
+      resourcegroup: resourcegroup,
+      resourceName: resourceName,
+    };
+  },
+  vm_helper: function (resourceSearchAnchor) {
+    $(resourceSearchAnchor).each(function (i, e) {
       let resultRow = jQuery(e);
-      let vmAssetHref = resultRow.attr("href");
-      let splits = vmAssetHref.split("/");
-      let subscription = splits[5];
-      let resourcegroup = splits[7];
-      let vmname = splits[11];
-      let bastionLink = `${extension_azure_helper.constants.baseAzureUrl}${subscription}/resourceGroups/${resourcegroup}/providers/Microsoft.Compute/virtualMachines/${vmname}/bastionHost`;
-      let iamLink = `${extension_azure_helper.constants.baseAzureUrl}${subscription}/resourceGroups/${resourcegroup}/providers/Microsoft.Compute/virtualMachines/${vmname}/users`;
+      let { subscription, resourcegroup, resourceName } =
+        extension_azure_helper.azure_url_parser(e);
+
+      let linkPattern = `${extension_azure_helper.constants.baseAzureUrl}${subscription}/resourceGroups/${resourcegroup}/providers/Microsoft.Compute/virtualMachines/${resourceName}/`;
+
       extension_azure_helper.link_helper(
         resultRow,
-        "Bastion",
-        bastionLink,
+        "Networking",
+        linkPattern,
+        "networking",
+        extension_azure_helper.timers.searcher
+      );
+      extension_azure_helper.link_helper(
+        resultRow,
+        "Run",
+        linkPattern,
+        "runcommands",
         extension_azure_helper.timers.searcher
       );
       extension_azure_helper.link_helper(
         resultRow,
         "IAM",
-        iamLink,
+        linkPattern,
+        "users",
+        extension_azure_helper.timers.searcher
+      );
+      extension_azure_helper.link_helper(
+        resultRow,
+        "Bastion",
+        linkPattern,
+        "bastionHost",
         extension_azure_helper.timers.searcher
       );
     });
   },
-  link_helper: function (resultRow, shortCutName, shortCutLink, timer) {
+  link_helper: function (
+    resultRow,
+    shortCutName,
+    shortCutLinkPattern,
+    azureUrlEndPart,
+    timer
+  ) {
+    let shortCutLink = `${shortCutLinkPattern}${azureUrlEndPart}`;
     let linkExists = extension_azure_helper.link_exists_checker(
       resultRow,
       shortCutName

@@ -1,0 +1,16 @@
+<div class="fxs-menu-result-text-primary">
+  <div class="fxs-menu-result-name fxs-portal-text" data-bind="&quot;html&quot;:$data.displayName,&quot;css&quot;:{&quot;msportalfx-text-primary&quot;:$parent.displayName === $root.func._documentCategoryDisplayName}">wsprdsapsol01
+  </div>
+  <div class="fxs-menu-result-type fxs-portal-subtext" data-bind="&quot;text&quot;:$data.typeName">
+    <a href="https://www.google.com">Bastion</a>
+  </div>
+  <div class="fxs-menu-result-type fxs-portal-subtext" data-bind="&quot;text&quot;:$data.typeName">Virtual machine
+  </div>
+</div>
+<!--
+   $("a.fxs-menu-item.fxs-search-menu-content[title*='Virtual machine']")
+   .first("div.fxs-menu-result-text-primary")
+    .first("div.fxs-menu-result-name.fxs-portal-text")
+      .after('<div class="fxs-menu-result-type fxs-portal-subtext" data-bind="&quot;text&quot;:$data.typeName"><a href="https://www.google.com">Bastion</a></div>')
+
+-->

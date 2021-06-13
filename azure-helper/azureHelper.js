@@ -1,60 +1,69 @@
 main();
 
 function main() {
-  var trackIndex = "v7";
+  var trackIndex = "v0.1";
   console.log("AzureHelper extension " + trackIndex + " loaded");
   //Attach to the search button
   setTimeout(function () {
-    $(extension_azure_helper.constants.azurePortalSearchBox).keydown(function (
-      e
-    ) {
-      if (extension_azure_helper.timers.searcher == null) {
-        extension_azure_helper.timers.searcher = setInterval(function () {
-          console.log(
-            "Searching search drop down again " +
-              trackIndex +
-              ", Interval timer is " +
-              extension_azure_helper.timers.searcher
-          );
+    if (extension_azure_helper.timers.searcher == null) {
+      extension_azure_helper.timers.searcher = setInterval(function () {
+        console.log(
+          "Searching search drop down again " +
+            trackIndex +
+            ", Interval timer is " +
+            extension_azure_helper.timers.searcher
+        );
 
-          extension_azure_helper.shortcut_helper(
-            extension_azure_helper.constants.virtualMachineSearchAnchor,
-            "Microsoft.Compute",
-            "virtualMachines",
-            [
-              { shortCutName: "Networking", azureUrlEndPart: "networking" },
-              { shortCutName: "Run", azureUrlEndPart: "runcommands" },
-              { shortCutName: "IAM", azureUrlEndPart: "users" },
-              { shortCutName: "Bastion", azureUrlEndPart: "bastionHost" },
-            ]
-          );
+        extension_azure_helper.shortcut_helper(
+          extension_azure_helper.constants.virtualMachineSearchAnchor,
+          "Microsoft.Compute",
+          "virtualMachines",
+          [
+            { shortCutName: "Bastion", azureUrlEndPart: "bastionHost" },
+            { shortCutName: "IAM", azureUrlEndPart: "users" },
+            { shortCutName: "Networking", azureUrlEndPart: "networking" },
+            { shortCutName: "Run", azureUrlEndPart: "runcommands" },
+          ]
+        );
 
-          // extension_azure_helper.shortcut_helper(
-          //   extension_azure_helper.constants.storageAccountSearchAnchor,
-          //   "Microsoft.Storage",
-          //   "storageAccounts",
-          //   [
-          //     { shortCutName: "Networking", azureUrlEndPart: "networking" },
-          //     { shortCutName: "Explorer", azureUrlEndPart: "storageexplorer" },
-          //     { shortCutName: "IAM", azureUrlEndPart: "users" },
-          //     { shortCutName: "Keys", azureUrlEndPart: "keys" },
-          //   ]
-          // );
-        }, 1000);
-      }
-    });
+        extension_azure_helper.shortcut_helper(
+          extension_azure_helper.constants.storageAccountSearchAnchor,
+          "Microsoft.Storage",
+          "storageAccounts",
+          [
+            { shortCutName: "Networking", azureUrlEndPart: "networking" },
+            { shortCutName: "IAM", azureUrlEndPart: "iamAccessControl" },
+            { shortCutName: "Keys", azureUrlEndPart: "keys" },
+            { shortCutName: "Explorer", azureUrlEndPart: "storageexplorer" },
+          ]
+        );
+
+        extension_azure_helper.shortcut_helper(
+          extension_azure_helper.constants.keyVaultSearchAnchor,
+          "Microsoft.KeyVault",
+          "vaults",
+          [
+            { shortCutName: "Networking", azureUrlEndPart: "networking" },
+            { shortCutName: "IAM", azureUrlEndPart: "users" },
+            { shortCutName: "Secrets", azureUrlEndPart: "secrets" },
+            { shortCutName: "Certs", azureUrlEndPart: "certificates" },
+          ]
+        );
+      }, 1000);
+    }
   }, 1000);
 }
 
 var extension_azure_helper = {
   constants: {
-    baseAzureUrl:
-      "https://portal.azure.com/#@globalasahi.com/resource/subscriptions/",
+    baseAzureUrl: "https://portal.azure.com/<tenant>/resource/subscriptions/",
     azurePortalSearchBox: "div.fxs-search-box.fxs-topbar-input>input",
     virtualMachineSearchAnchor:
       "a.fxs-menu-item.fxs-search-menu-content[title*='Virtual machine']",
     storageAccountSearchAnchor:
       "a.fxs-menu-item.fxs-search-menu-content[title*='Storage account']",
+    keyVaultSearchAnchor:
+      "a.fxs-menu-item.fxs-search-menu-content[title*='Key vault']",
     searchResultList: "fxs-portal-hover.fxs-menu-result-item",
   },
   timers: {
@@ -64,10 +73,12 @@ var extension_azure_helper = {
     let resultRow = jQuery(element);
     let resourceHref = resultRow.attr("href");
     let splits = resourceHref.split("/");
+    let tenant = splits[0];
     let subscription = splits[5];
     let resourcegroup = splits[7];
     let resourceName = splits[11];
     return {
+      tenant: tenant,
       subscription: subscription,
       resourcegroup: resourcegroup,
       resourceName: resourceName,
@@ -81,10 +92,14 @@ var extension_azure_helper = {
   ) {
     $(resourceSearchAnchor).each(function (i, e) {
       let resultRow = jQuery(e);
-      let { subscription, resourcegroup, resourceName } =
+      let { tenant, subscription, resourcegroup, resourceName } =
         extension_azure_helper.azure_url_parser(e);
-
-      let linkPattern = `${extension_azure_helper.constants.baseAzureUrl}${subscription}/resourceGroups/${resourcegroup}/providers/${provider}/${resourceType}/${resourceName}/`;
+      let baseUrl_with_tenant =
+        extension_azure_helper.constants.baseAzureUrl.replace(
+          "<tenant>",
+          tenant
+        );
+      let linkPattern = `${baseUrl_with_tenant}${subscription}/resourceGroups/${resourcegroup}/providers/${provider}/${resourceType}/${resourceName}/`;
 
       shortCuts.forEach(function (shortCut) {
         extension_azure_helper.link_helper(
@@ -105,32 +120,20 @@ var extension_azure_helper = {
     timer
   ) {
     let shortCutLink = `${shortCutLinkPattern}${azureUrlEndPart}`;
-    let linkExists = extension_azure_helper.link_exists_checker(
-      resultRow,
-      shortCutName
-    );
-    if (!linkExists) {
-      resultRow.parent().after(`
-  <a class=${shortCutName} href="${shortCutLink}" target='_blank'>${shortCutName}</a>`);
+    let shortCutContainerExists =
+      resultRow.parent().children(`div.shortCutContainer`).length == 1;
+    if (!shortCutContainerExists) {
+      resultRow.parent().append("<div class='shortCutContainer'></div>");
     }
-  },
-  link_exists_checker: function (resultRow, shortCutName) {
-    let next = resultRow.parent();
-    let stop = false;
-    let found = false;
-    while (!stop) {
-      if (next.next("a").hasClass(shortCutName)) {
-        stop = true;
-        found = true;
-      }
-      if (
-        next.next(`li.${extension_azure_helper.constants.searchResultList}`)
-          .length > 0
-      ) {
-        stop = true;
-      }
-      next = next.next();
+
+    let shortCutLinkExists =
+      resultRow
+        .parent()
+        .children(`div.shortCutContainer`)
+        .children(`a.${shortCutName}`).length == 1;
+    if (!shortCutLinkExists) {
+      resultRow.parent().children(`div.shortCutContainer`).append(`
+  <a class="${shortCutName} shortCut" href="${shortCutLink}" target='_blank'>${shortCutName}</a>`);
     }
-    return found;
   },
 };
